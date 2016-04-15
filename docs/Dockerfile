@@ -1,10 +1,18 @@
-FROM ubuntu:13.10
-RUN apt-get -qq update && apt-get install -y ruby1.8 bundler python
-RUN locale-gen en_US.UTF-8
-ADD Gemfile /code/
-ADD Gemfile.lock /code/
-WORKDIR /code
-RUN bundle install
-ADD . /code
-EXPOSE 4000
-CMD bundle exec jekyll build
+FROM docs/base:latest
+MAINTAINER Mary Anthony <mary@docker.com> (@moxiegirl)
+
+RUN svn checkout https://github.com/docker/docker/trunk/docs /docs/content/engine
+RUN svn checkout https://github.com/docker/swarm/trunk/docs /docs/content/swarm
+RUN svn checkout https://github.com/docker/machine/trunk/docs /docs/content/machine
+RUN svn checkout https://github.com/docker/distribution/trunk/docs /docs/content/registry
+RUN svn checkout https://github.com/docker/notary/trunk/docs /docs/content/notary
+RUN svn checkout https://github.com/docker/kitematic/trunk/docs /docs/content/kitematic
+RUN svn checkout https://github.com/docker/toolbox/trunk/docs /docs/content/toolbox
+RUN svn checkout https://github.com/docker/opensource/trunk/docs /docs/content/project
+
+
+ENV PROJECT=compose
+# To get the git info for this repo
+COPY . /src
+
+COPY . /docs/content/$PROJECT/

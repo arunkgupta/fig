@@ -1,4 +1,8 @@
-# Contributing to Fig
+# Contributing to Compose
+
+Compose is a part of the Docker project, and follows the same rules and
+principles. Take a read of [Docker's contributing guidelines](https://github.com/docker/docker/blob/master/CONTRIBUTING.md)
+to get an overview.
 
 ## TL;DR
 
@@ -6,99 +10,65 @@ Pull requests will need:
 
  - Tests
  - Documentation
- - [To be signed off](#sign-your-work)
+ - [To be signed off](https://github.com/docker/docker/blob/master/CONTRIBUTING.md#sign-your-work)
  - A logical series of [well written commits](https://github.com/alphagov/styleguides/blob/master/git.md)
 
 ## Development environment
 
-If you're looking contribute to [Fig](http://www.fig.sh/)
+If you're looking contribute to Compose
 but you're new to the project or maybe even to Python, here are the steps
 that should get you started.
 
-1. Fork [https://github.com/docker/fig](https://github.com/docker/fig) to your username.
-1. Clone your forked repository locally `git clone git@github.com:yourusername/fig.git`.
-1. Enter the local directory `cd fig`.
-1. Set up a development environment by running `python setup.py develop`. This will install the dependencies and set up a symlink from your `fig` executable to the checkout of the repository. When you now run `fig` from anywhere on your machine, it will run your development version of Fig.
+1. Fork [https://github.com/docker/compose](https://github.com/docker/compose)
+   to your username.
+2. Clone your forked repository locally `git clone git@github.com:yourusername/compose.git`.
+3. You must [configure a remote](https://help.github.com/articles/configuring-a-remote-for-a-fork/) for your fork so that you can [sync changes you make](https://help.github.com/articles/syncing-a-fork/) with the original repository.
+4. Enter the local directory `cd compose`.
+5. Set up a development environment by running `python setup.py develop`. This
+   will install the dependencies and set up a symlink from your `docker-compose`
+   executable to the checkout of the repository. When you now run
+   `docker-compose` from anywhere on your machine, it will run your development
+   version of Compose.
+
+## Install pre-commit hooks
+
+This step is optional, but recommended. Pre-commit hooks will run style checks
+and in some cases fix style issues for you, when you commit code.
+
+Install the git pre-commit hooks using [tox](https://tox.readthedocs.org) by
+running `tox -e pre-commit` or by following the
+[pre-commit install guide](http://pre-commit.com/#install).
+
+To run the style checks at any time run `tox -e pre-commit`.
+
+## Submitting a pull request
+
+See Docker's [basic contribution workflow](https://docs.docker.com/opensource/workflow/make-a-contribution/#the-basic-contribution-workflow) for a guide on how to submit a pull request for code or documentation.
 
 ## Running the test suite
 
-    $ script/test
+Use the test script to run linting checks and then the full test suite against
+different Python interpreters:
 
-## Sign your work
+    $ script/test/default
 
-The sign-off is a simple line at the end of the explanation for the
-patch, which certifies that you wrote it or otherwise have the right to
-pass it on as an open-source patch.  The rules are pretty simple: if you
-can certify the below (from [developercertificate.org](http://developercertificate.org/)):
+Tests are run against a Docker daemon inside a container, so that we can test
+against multiple Docker versions. By default they'll run against only the latest
+Docker version - set the `DOCKER_VERSIONS` environment variable to "all" to run
+against all supported versions:
 
-    Developer's Certificate of Origin 1.1
+    $ DOCKER_VERSIONS=all script/test/default
 
-    By making a contribution to this project, I certify that:
+Arguments to `script/test/default` are passed through to the `tox` executable, so
+you can specify a test directory, file, module, class or method:
 
-    (a) The contribution was created in whole or in part by me and I
-        have the right to submit it under the open source license
-        indicated in the file; or
+    $ script/test/default tests/unit
+    $ script/test/default tests/unit/cli_test.py
+    $ script/test/default tests/unit/config_test.py::ConfigTest
+    $ script/test/default tests/unit/config_test.py::ConfigTest::test_load
 
-    (b) The contribution is based upon previous work that, to the best
-        of my knowledge, is covered under an appropriate open source
-        license and I have the right under that license to submit that
-        work with modifications, whether created in whole or in part
-        by me, under the same open source license (unless I am
-        permitted to submit under a different license), as indicated
-        in the file; or
+## Finding things to work on
 
-    (c) The contribution was provided directly to me by some other
-        person who certified (a), (b) or (c) and I have not modified
-        it.
+We use a [ZenHub board](https://www.zenhub.io/) to keep track of specific things we are working on and planning to work on. If you're looking for things to work on, stuff in the backlog is a great place to start.
 
-    (d) I understand and agree that this project and the contribution
-        are public and that a record of the contribution (including all
-        personal information I submit with it, including my sign-off) is
-        maintained indefinitely and may be redistributed consistent with
-        this project or the open source license(s) involved.
-
-then you just add a line saying
-
-    Signed-off-by: Random J Developer <random@developer.example.org>
-
-using your real name (sorry, no pseudonyms or anonymous contributions.)
-
-The easiest way to do this is to use the `--signoff` flag when committing. E.g.:
-
-
-    $ git commit --signoff
-
-## Building binaries
-
-Linux:
-
-    $ script/build-linux
-
-OS X:
-
-    $ script/build-osx
-
-Note that this only works on Mountain Lion, not Mavericks, due to a [bug in PyInstaller](http://www.pyinstaller.org/ticket/807).
-
-## Release process
-
-1. Open pull request that:
-
- - Updates version in `fig/__init__.py`
- - Updates version in `docs/install.md`
- - Adds release notes to `CHANGES.md`
-
-2. Create unpublished GitHub release with release notes
-
-3. Build Linux version on any Docker host with `script/build-linux` and attach to release
-
-4. Build OS X version on Mountain Lion with `script/build-osx` and attach to release as `fig-Darwin-x86_64` and `fig-Linux-x86_64`.
-
-5. Publish GitHub release, creating tag
-
-6. Update website with `script/deploy-docs`
-
-7. Upload PyPi package
-
-    $ git checkout $VERSION
-    $ python setup.py sdist upload
+For more information about our project planning, take a look at our [GitHub wiki](https://github.com/docker/compose/wiki).

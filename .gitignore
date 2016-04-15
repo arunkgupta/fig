@@ -1,8 +1,11 @@
 *.egg-info
 *.pyc
-.tox
+.coverage*
+/.tox
 /build
+/coverage-html
 /dist
 /docs/_site
 /venv
-fig.spec
+README.rst
+compose/GITSHA

@@ -1,91 +1,194 @@
----
-layout: default
-title: Getting started with Fig and Django
----
+<!--[metadata]>
++++
+title = "Quickstart: Compose and Django"
+description = "Getting started with Docker Compose and Django"
+keywords = ["documentation, docs,  docker, compose, orchestration, containers"]
+[menu.main]
+parent="workw_compose"
+weight=4
++++
+<![end-metadata]-->
 
-Getting started with Fig and Django
-===================================
 
-Let's use Fig to set up and run a Django/PostgreSQL app. Before starting, you'll need to have [Fig installed](install.html).
+# Quickstart: Docker Compose and Django
 
-Let's set up the three files that'll get us started. First, our app is going to be running inside a Docker container which contains all of its dependencies. We can define what goes inside that Docker container using a file called `Dockerfile`. It'll contain this to start with:
+This quick-start guide demonstrates how to use Docker Compose to set up and run a simple Django/PostgreSQL app. Before starting, you'll need to have
+[Compose installed](install.md).
 
-    FROM python:2.7
-    ENV PYTHONUNBUFFERED 1
-    RUN mkdir /code
-    WORKDIR /code
-    ADD requirements.txt /code/
-    RUN pip install -r requirements.txt
-    ADD . /code/
+### Define the project components
 
-That'll install our application inside an image with Python installed alongside all of our Python dependencies. For more information on how to write Dockerfiles, see the [Docker user guide](https://docs.docker.com/userguide/dockerimages/#building-an-image-from-a-dockerfile) and the [Dockerfile reference](http://docs.docker.com/reference/builder/).
+For this project, you need to create a Dockerfile, a Python dependencies file,
+and a `docker-compose.yml` file.
 
-Second, we define our Python dependencies in a file called `requirements.txt`:
+1. Create an empty project directory.
 
-    Django
-    psycopg2
+    You can name the directory something easy for you to remember. This directory is the context for your application image. The directory should only contain resources to build that image.
 
-Simple enough. Finally, this is all tied together with a file called `fig.yml`. It describes the services that our app comprises of (a web server and database), what Docker images they use, how they link together, what volumes will be mounted inside the containers and what ports they expose.
+2. Create a new file called `Dockerfile` in your project directory.
 
-    db:
-      image: postgres
-    web:
-      build: .
-      command: python manage.py runserver 0.0.0.0:8000
-      volumes:
-        - .:/code
-      ports:
-        - "8000:8000"
-      links:
-        - db
+    The Dockerfile defines an application's image content via one or more build
+    commands that configure that image. Once built, you can run the image in a
+    container.  For more information on `Dockerfiles`, see the [Docker user
+    guide](https://docs.docker.com/engine/userguide/dockerimages/#building-an-image-from-a-dockerfile)
+    and the [Dockerfile reference](https://docs.docker.com/engine/reference/builder/).
 
-See the [`fig.yml` reference](yml.html) for more information on how it works.
+3. Add the following content to the `Dockerfile`.
 
-We can now start a Django project using `fig run`:
+        FROM python:2.7
+        ENV PYTHONUNBUFFERED 1
+        RUN mkdir /code
+        WORKDIR /code
+        ADD requirements.txt /code/
+        RUN pip install -r requirements.txt
+        ADD . /code/
 
-    $ fig run web django-admin.py startproject figexample .
+    This `Dockerfile` starts with a Python 2.7 base image. The base image is
+    modified by adding a new `code` directory. The base image is further modified
+    by installing the Python requirements defined in the `requirements.txt` file.
 
-First, Fig will build an image for the `web` service using the `Dockerfile`. It will then run `django-admin.py startproject figexample .` inside a container using that image.
+4. Save and close the `Dockerfile`.
 
-This will generate a Django app inside the current directory:
+5. Create a `requirements.txt` in your project directory.
 
-    $ ls
-    Dockerfile       fig.yml          figexample       manage.py        requirements.txt
+    This file is used by the `RUN pip install -r requirements.txt` command in your `Dockerfile`.
 
-First thing we need to do is set up the database connection. Replace the `DATABASES = ...` definition in `figexample/settings.py` to read:
+6. Add the required software in the file.
 
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'postgres',
-            'USER': 'postgres',
-            'HOST': 'db',
-            'PORT': 5432,
+        Django
+        psycopg2
+
+7. Save and close the `requirements.txt` file.
+
+8. Create a file called `docker-compose.yml` in your project directory.
+
+    The `docker-compose.yml` file describes the services that make your app. In
+    this example those services are a web server and database.  The compose file
+    also describes which Docker images these services use, how they link
+    together, any volumes they might need mounted inside the containers.
+    Finally, the `docker-compose.yml` file describes which ports these services
+    expose. See the [`docker-compose.yml` reference](compose-file.md) for more
+    information on how this file works.
+
+9. Add the following configuration to the file.
+
+        version: '2'
+        services:
+          db:
+            image: postgres
+          web:
+            build: .
+            command: python manage.py runserver 0.0.0.0:8000
+            volumes:
+              - .:/code
+            ports:
+              - "8000:8000"
+            depends_on:
+              - db
+
+    This file defines two services: The `db` service and the `web` service.
+
+10. Save and close the `docker-compose.yml` file.
+
+### Create a Django project
+
+In this step, you create a Django started project by building the image from the build context defined in the previous procedure.
+
+1. Change to the root of your project directory.
+
+2. Create the Django project using the `docker-compose` command.
+
+        $ docker-compose run web django-admin.py startproject composeexample .
+
+    This instructs Compose to run `django-admin.py startproject composeeexample`
+    in a container, using the `web` service's image and configuration. Because
+    the `web` image doesn't exist yet, Compose builds it from the current
+    directory, as specified by the `build: .` line in `docker-compose.yml`.
+
+    Once the `web` service image is built, Compose runs it and executes the
+    `django-admin.py startproject` command in the container. This command
+    instructs Django to create a set of files and directories representing a
+    Django project.
+
+3. After the `docker-compose` command completes, list the contents of your project.
+
+        $ ls -l
+        drwxr-xr-x 2 root   root   composeexample
+        -rw-rw-r-- 1 user   user   docker-compose.yml
+        -rw-rw-r-- 1 user   user   Dockerfile
+        -rwxr-xr-x 1 root   root   manage.py
+        -rw-rw-r-- 1 user   user   requirements.txt
+
+  If you are running Docker on Linux, the files `django-admin` created are owned
+  by root. This happens because the container runs as the root user. Change the
+  ownership of the the new files.
+
+          sudo chown -R $USER:$USER .
+
+  If you are running Docker on Mac or Windows, you should already have ownership
+  of all files, including those generated by `django-admin`. List the files just
+  verify this.
+
+        $ ls -l
+        total 32
+        -rw-r--r--  1 user  staff  145 Feb 13 23:00 Dockerfile
+        drwxr-xr-x  6 user  staff  204 Feb 13 23:07 composeexample
+        -rw-r--r--  1 user  staff  159 Feb 13 23:02 docker-compose.yml
+        -rwxr-xr-x  1 user  staff  257 Feb 13 23:07 manage.py
+        -rw-r--r--  1 user  staff   16 Feb 13 23:01 requirements.txt
+
+
+### Connect the database
+
+In this section, you set up the database connection for Django.
+
+1. In your project directory, edit the `composeexample/settings.py` file.
+
+2. Replace the `DATABASES = ...` with the following:
+
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'NAME': 'postgres',
+                'USER': 'postgres',
+                'HOST': 'db',
+                'PORT': 5432,
+            }
         }
-    }
 
-These settings are determined by the [postgres](https://registry.hub.docker.com/_/postgres/) Docker image we are using.
+    These settings are determined by the
+    [postgres](https://hub.docker.com/_/postgres/) Docker image
+    specified in `docker-compose.yml`.
 
-Then, run `fig up`:
+3. Save and close the file.
 
-    Recreating myapp_db_1...
-    Recreating myapp_web_1...
-    Attaching to myapp_db_1, myapp_web_1
-    myapp_db_1 |
-    myapp_db_1 | PostgreSQL stand-alone backend 9.1.11
-    myapp_db_1 | 2014-01-27 12:17:03 UTC LOG:  database system is ready to accept connections
-    myapp_db_1 | 2014-01-27 12:17:03 UTC LOG:  autovacuum launcher started
-    myapp_web_1 | Validating models...
-    myapp_web_1 |
-    myapp_web_1 | 0 errors found
-    myapp_web_1 | January 27, 2014 - 12:12:40
-    myapp_web_1 | Django version 1.6.1, using settings 'figexample.settings'
-    myapp_web_1 | Starting development server at http://0.0.0.0:8000/
-    myapp_web_1 | Quit the server with CONTROL-C.
+4. Run the `docker-compose up` command.
 
-And your Django app should be running at port 8000 on your docker daemon (if you're using boot2docker, `boot2docker ip` will tell you its address).
+        $ docker-compose up
+        Starting composepractice_db_1...
+        Starting composepractice_web_1...
+        Attaching to composepractice_db_1, composepractice_web_1
+        ...
+        db_1  | PostgreSQL init process complete; ready for start up.
+        ...
+        db_1  | LOG:  database system is ready to accept connections
+        db_1  | LOG:  autovacuum launcher started
+        ..
+        web_1 | Django version 1.8.4, using settings 'composeexample.settings'
+        web_1 | Starting development server at http://0.0.0.0:8000/
+        web_1 | Quit the server with CONTROL-C.
 
-You can also run management commands with Docker. To set up your database, for example, run `fig up` and in another terminal run:
+    At this point, your Django app should be running at port `8000` on your
+    Docker host. If you are using a Docker Machine VM, you can use the
+    `docker-machine ip MACHINE_NAME` to get the IP address.
 
-    $ fig run web python manage.py syncdb
+    ![Django example](images/django-it-worked.png)
 
+## More Compose documentation
+
+- [User guide](index.md)
+- [Installing Compose](install.md)
+- [Getting Started](gettingstarted.md)
+- [Get started with Rails](rails.md)
+- [Get started with WordPress](wordpress.md)
+- [Command line reference](./reference/index.md)
+- [Compose file reference](compose-file.md)

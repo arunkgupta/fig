@@ -1,91 +1,112 @@
----
-layout: default
-title: Getting started with Fig and Wordpress
----
+<!--[metadata]>
++++
+title = "Quickstart: Compose and WordPress"
+description = "Getting started with Compose and WordPress"
+keywords = ["documentation, docs,  docker, compose, orchestration, containers"]
+[menu.main]
+parent="workw_compose"
+weight=6
++++
+<![end-metadata]-->
 
-Getting started with Fig and Wordpress
-======================================
 
-Fig makes it nice and easy to run Wordpress in an isolated environment. [Install Fig](install.html), then download Wordpress into the current directory:
+# Quickstart: Docker Compose and WordPress
 
-    $ curl https://wordpress.org/latest.tar.gz | tar -xvzf -
+You can use Docker Compose to easily run WordPress in an isolated environment built
+with Docker containers. This quick-start guide demonstrates how to use Compose to set up and run WordPress. Before starting, you'll need to have
+[Compose installed](install.md).
 
-This will create a directory called `wordpress`, which you can rename to the name of your project if you wish. Inside that directory, we create `Dockerfile`, a file that defines what environment your app is going to run in:
+### Define the project
 
-```
-FROM orchardup/php5
-ADD . /code
-```
+1. Create an empty project directory.
 
-This instructs Docker on how to build an image that contains PHP and Wordpress. For more information on how to write Dockerfiles, see the [Docker user guide](https://docs.docker.com/userguide/dockerimages/#building-an-image-from-a-dockerfile) and the [Dockerfile reference](http://docs.docker.com/reference/builder/).
+    You can name the directory something easy for you to remember. This directory is the context for your application image. The directory should only contain resources to build that image.
 
-Next up, `fig.yml` starts our web service and a separate MySQL instance:
+    This project directory will contain a `docker-compose.yaml` file which will be complete in itself for a good starter wordpress project.
 
-```
-web:
-  build: .
-  command: php -S 0.0.0.0:8000 -t /code
-  ports:
-    - "8000:8000"
-  links:
-    - db
-  volumes:
-    - .:/code
-db:
-  image: orchardup/mysql
-  environment:
-    MYSQL_DATABASE: wordpress
-```
+2. Change directories into your project directory.
 
-Two supporting files are needed to get this working - first up, `wp-config.php` is the standard Wordpress config file with a single change to point the database configuration at the `db` container:
+    For example, if you named your directory `my_wordpress`:
 
-```
-<?php
-define('DB_NAME', 'wordpress');
-define('DB_USER', 'root');
-define('DB_PASSWORD', '');
-define('DB_HOST', "db:3306");
-define('DB_CHARSET', 'utf8');
-define('DB_COLLATE', '');
+        $ cd my-wordpress/
 
-define('AUTH_KEY',         'put your unique phrase here');
-define('SECURE_AUTH_KEY',  'put your unique phrase here');
-define('LOGGED_IN_KEY',    'put your unique phrase here');
-define('NONCE_KEY',        'put your unique phrase here');
-define('AUTH_SALT',        'put your unique phrase here');
-define('SECURE_AUTH_SALT', 'put your unique phrase here');
-define('LOGGED_IN_SALT',   'put your unique phrase here');
-define('NONCE_SALT',       'put your unique phrase here');
+3. Create a `docker-compose.yml` file that will start your `Wordpress` blog and a separate `MySQL` instance with a volume mount for data persistence:
 
-$table_prefix  = 'wp_';
-define('WPLANG', '');
-define('WP_DEBUG', false);
+        version: '2'
+        services:
+          db:
+            image: mysql:5.7
+            volumes:
+              - "./.data/db:/var/lib/mysql"
+            restart: always
+            environment:
+              MYSQL_ROOT_PASSWORD: wordpress
+              MYSQL_DATABASE: wordpress
+              MYSQL_USER: wordpress
+              MYSQL_PASSWORD: wordpress
 
-if ( !defined('ABSPATH') )
-    define('ABSPATH', dirname(__FILE__) . '/');
+          wordpress:
+            depends_on:
+              - db
+            image: wordpress:latest
+            links:
+              - db
+            ports:
+              - "8000:80"
+            restart: always
+            environment:
+              WORDPRESS_DB_HOST: db:3306
+              WORDPRESS_DB_PASSWORD: wordpress
 
-require_once(ABSPATH . 'wp-settings.php');
-```
+    **NOTE**: The folder `./.data/db` will be automatically created in the project directory
+    alongside the `docker-compose.yml` which will persist any updates made by wordpress to the
+    database.
 
-Finally, `router.php` tells PHP's built-in web server how to run Wordpress:
+### Build the project
 
-```
-<?php
+Now, run `docker-compose up -d` from your project directory.
 
-$root = $_SERVER['DOCUMENT_ROOT'];
-chdir($root);
-$path = '/'.ltrim(parse_url($_SERVER['REQUEST_URI'])['path'],'/');
-set_include_path(get_include_path().':'.__DIR__);
-if(file_exists($root.$path))
-{
-    if(is_dir($root.$path) && substr($path,strlen($path) - 1, 1) !== '/')
-        $path = rtrim($path,'/').'/index.php';
-    if(strpos($path,'.php') === false) return false;
-    else {
-        chdir(dirname($root.$path));
-        require_once $root.$path;
-    }
-}else include_once 'index.php';
-```
+This pulls the needed images, and starts the wordpress and database containers, as shown in the example below.
 
-With those four files in place, run `fig up` inside your Wordpress directory and it'll pull and build the images we need, and then start the web and database containers. You'll then be able to visit Wordpress at port 8000 on your docker daemon (if you're using boot2docker, `boot2docker ip` will tell you its address).
+    $ docker-compose up -d
+    Creating network "my_wordpress_default" with the default driver
+    Pulling db (mysql:5.7)...
+    5.7: Pulling from library/mysql
+    efd26ecc9548: Pull complete
+    a3ed95caeb02: Pull complete
+    ...
+    Digest: sha256:34a0aca88e85f2efa5edff1cea77cf5d3147ad93545dbec99cfe705b03c520de
+    Status: Downloaded newer image for mysql:5.7
+    Pulling wordpress (wordpress:latest)...
+    latest: Pulling from library/wordpress
+    efd26ecc9548: Already exists
+    a3ed95caeb02: Pull complete
+    589a9d9a7c64: Pull complete
+    ...
+    Digest: sha256:ed28506ae44d5def89075fd5c01456610cd6c64006addfe5210b8c675881aff6
+    Status: Downloaded newer image for wordpress:latest
+    Creating my_wordpress_db_1
+    Creating my_wordpress_wordpress_1
+
+### Bring up WordPress in a web browser
+
+If you're using [Docker Machine](https://docs.docker.com/machine/), then `docker-machine ip MACHINE_VM` gives you the machine address and you can open `http://MACHINE_VM_IP:8000` in a browser.
+
+At this point, WordPress should be running on port `8000` of your Docker Host, and you can complete the "famous five-minute installation" as a WordPress administrator.
+
+**NOTE**: The Wordpress site will not be immediately available on port `8000` because the containers are still being initialized and may take a couple of minutes before the first load.
+
+![Choose language for WordPress install](images/wordpress-lang.png)
+
+![WordPress Welcome](images/wordpress-welcome.png)
+
+
+## More Compose documentation
+
+- [User guide](index.md)
+- [Installing Compose](install.md)
+- [Getting Started](gettingstarted.md)
+- [Get started with Django](django.md)
+- [Get started with Rails](rails.md)
+- [Command line reference](./reference/index.md)
+- [Compose file reference](compose-file.md)
